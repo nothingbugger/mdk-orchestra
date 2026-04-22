@@ -1,0 +1,86 @@
+# Sensitivity profiles for deterministic_tools flaggers.
+#
+# Three named profiles: low, medium, high.
+#   low    — emit only high-confidence flags. Fewer false positives, fewer
+#            catches. Reduces LLM dispatch cost downstream.
+#   medium — balanced. The recommended default for production.
+#   high   — emit near-noise flags. More catches, more false positives, more
+#            LLM cost. Useful when a fault storm is suspected and human is
+#            watching the dashboard.
+#
+# Per-flagger structure:
+#   min_confidence  — minimum FlagResult.confidence to emit (float 0-1).
+#   cooldown_s      — minimum seconds between repeated flags for same
+#                     (miner_id, flag_type) pair. Suppresses flag storms.
+#
+# Rule-engine extra fields (thresholds are hard physics — do NOT lower them
+# below safe values; only the timing windows are sensitivity-tunable):
+#   temp_sustained_s      — seconds chip must stay above 85 °C to trigger thermal_runaway
+#   voltage_warn_sustained_s  — seconds voltage must be outside [11.4,12.6] for warn
+#   voltage_crit_band_lo  — lower bound of crit voltage band (V)
+#   voltage_crit_band_hi  — upper bound of crit voltage band (V)
+#   hashrate_drop_sustained_s — seconds hashrate must stay below 80% of expected
+#   fan_sustained_s       — seconds a fan must stay below 3000 RPM to trigger
+
+low:
+  rule_engine:
+    min_confidence: 0.90
+    cooldown_s: 1200           # 20 min cooldown between same flags
+    temp_sustained_s: 900      # 15 min sustained (stricter)
+    voltage_warn_sustained_s: 600  # 10 min
+    voltage_crit_band_lo: 11.0
+    voltage_crit_band_hi: 13.0
+    hashrate_drop_sustained_s: 600  # 10 min
+    fan_sustained_s: 300        # 5 min
+  isolation_forest:
+    min_confidence: 0.88
+    cooldown_s: 1200
+    anomaly_score_warn: 0.80   # contamination-normalised score
+    anomaly_score_crit: 0.95
+  xgboost:
+    min_confidence: 0.85
+    cooldown_s: 1200
+    prob_warn: 0.65            # predicted probability to trigger warn
+    prob_crit: 0.85            # predicted probability to trigger crit
+
+medium:
+  rule_engine:
+    min_confidence: 0.75
+    cooldown_s: 600            # 10 min
+    temp_sustained_s: 600      # 10 min
+    voltage_warn_sustained_s: 300   # 5 min
+    voltage_crit_band_lo: 11.0
+    voltage_crit_band_hi: 13.0
+    hashrate_drop_sustained_s: 300  # 5 min
+    fan_sustained_s: 120            # 2 min
+  isolation_forest:
+    min_confidence: 0.72
+    cooldown_s: 600
+    anomaly_score_warn: 0.70
+    anomaly_score_crit: 0.88
+  xgboost:
+    min_confidence: 0.70
+    cooldown_s: 600
+    prob_warn: 0.50
+    prob_crit: 0.75
+
+high:
+  rule_engine:
+    min_confidence: 0.60
+    cooldown_s: 300            # 5 min
+    temp_sustained_s: 300      # 5 min
+    voltage_warn_sustained_s: 120   # 2 min
+    voltage_crit_band_lo: 11.0
+    voltage_crit_band_hi: 13.0
+    hashrate_drop_sustained_s: 180  # 3 min
+    fan_sustained_s: 60             # 1 min
+  isolation_forest:
+    min_confidence: 0.55
+    cooldown_s: 300
+    anomaly_score_warn: 0.60
+    anomaly_score_crit: 0.80
+  xgboost:
+    min_confidence: 0.50
+    cooldown_s: 300
+    prob_warn: 0.35
+    prob_crit: 0.60

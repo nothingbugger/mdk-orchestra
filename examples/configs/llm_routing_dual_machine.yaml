@@ -1,0 +1,46 @@
+# Dual-machine setup — Orchestra on Mac A, local LLM on Mac B.
+#
+# Useful when your primary machine doesn't have the RAM to host a 7B
+# model alongside the simulator and dashboard. Put Ollama on a second
+# machine on the LAN, point `standard_local.host` at its LAN address,
+# and the hybrid_economic profile routes specialists there while the
+# Maestro stays on Anthropic (requires ANTHROPIC_API_KEY).
+#
+# Before using: replace the example host/IP below with the real LAN
+# address of the machine running Ollama.
+
+standard_local:
+  host: "http://agent-machine.local:11434"
+  # Static IP fallback in case mDNS resolution fails on your network:
+  host_fallback: "http://192.168.1.75:11434"
+  timeout_s: 120
+  tool_call_retries: 2
+
+default:
+  backend: anthropic
+  model: claude-sonnet-4-6
+
+agents:
+  maestro:
+    dispatch:
+      backend: anthropic
+      model: claude-sonnet-4-6
+    escalation:
+      backend: anthropic
+      model: claude-opus-4-7
+    curation:
+      backend: anthropic
+      model: claude-opus-4-7
+  specialists:
+    voltage:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    hashrate:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    environment:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    power:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"

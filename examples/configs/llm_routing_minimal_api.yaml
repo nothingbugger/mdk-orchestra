@@ -1,0 +1,20 @@
+# Minimal API-only config — the simplest working routing.
+#
+# Every agent slot routes to Anthropic with the default Sonnet model.
+# Copy this to config/llm_routing.yaml if you want the smallest possible
+# routing file to reason about.
+#
+# Requires: ANTHROPIC_API_KEY environment variable.
+
+default:
+  backend: anthropic
+  model: claude-sonnet-4-6
+
+# With no `agents:` or `profiles:` section, every slot inherits `default`.
+# Override individual slots below if you want different models:
+#
+# agents:
+#   maestro:
+#     escalation:
+#       backend: anthropic
+#       model: claude-opus-4-7

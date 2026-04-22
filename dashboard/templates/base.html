@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}MDK Predictive Maintenance{% endblock %} — MDK Predictive Maintenance System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+<div class="page-wrap">
+
+  <header class="header-bar">
+    <span class="brand">MDK ORCHESTRA</span>
+    {% if backend_badge %}
+    <span class="backend-badge" title="{{ backend_badge.detail }}">
+      <span class="backend-badge-label">Backend:</span>
+      <span class="backend-badge-value">{{ backend_badge.label }}</span>
+      <span class="backend-badge-detail">· {{ backend_badge.detail }}</span>
+    </span>
+    {% endif %}
+    <span class="ts-live"><span class="live-indicator"></span><span id="ts-live"></span></span>
+  </header>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/event_stream.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

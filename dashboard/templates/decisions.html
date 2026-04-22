@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Decisions{% endblock %}
+
+{% block content %}
+<div class="panel mb4">
+  <div class="panel-title">Reasoning Trace Log — {{ total }} decision{{ 's' if total != 1 else '' }}</div>
+
+  {# ── Filter bar ─────────────────────────────────────────────────── #}
+  <form class="decisions-filter-bar" method="get" action="/decisions">
+    <div>
+      <label for="f-miner">Miner</label>
+      <input id="f-miner" name="miner" value="{{ q_miner }}"
+             placeholder="m042" style="width: 70px" />
+    </div>
+    <div>
+      <label for="f-action">Action</label>
+      <select id="f-action" name="action">
+        <option value="">all</option>
+        {% for a in all_actions %}
+        <option value="{{ a }}" {% if q_action == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-autonomy">Autonomy</label>
+      <select id="f-autonomy" name="autonomy">
+        <option value="">all</option>
+        {% for lvl in all_autonomy %}
+        <option value="{{ lvl }}" {% if q_autonomy == lvl %}selected{% endif %}>{{ lvl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit"
+            style="background: none; border: 1px solid var(--color-border-base);
+                   color: var(--color-text-primary); font-family: var(--typography-fontFamily-mono);
+                   font-size: var(--typography-fontSize-tiny); padding: var(--spacing-1) var(--spacing-2);
+                   cursor: pointer; letter-spacing: var(--typography-letterSpacing-label);
+                   text-transform: uppercase;">
+      Filter
+    </button>
+    {% if q_miner or q_action or q_autonomy %}
+    <a href="/decisions"
+       style="font-size: var(--typography-fontSize-tiny); color: var(--color-text-mute);">
+      clear
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+{# ── Decision cards ─────────────────────────────────────────────── #}
+{% for ev in decisions %}
+{% set d = ev.data %}
+<div class="decision-card">
+  <div class="decision-card-header">
+    <a class="decision-card-miner" href="/miner/{{ d.miner_id }}">{{ d.miner_id }}</a>
+    <span class="decision-card-action">{{ d.action }}</span>
+    <span class="decision-card-autonomy decision-card-autonomy--{{ d.autonomy_level[:2] | lower }}">[{{ d.autonomy_level }}]</span>
+    <span class="text-dim fs-tiny">conf {{ "%.2f"|format(d.confidence) }}</span>
+    <span class="text-dim fs-tiny">flag {{ d.flag_id }}</span>
+    <span class="decision-card-ts">{{ ev.ts[:19] }}</span>
+  </div>
+  <div class="decision-card-agents">
+    Agents consulted: {{ d.consulted_agents|join(', ') }}
+    · cost ${{ "%.4f"|format(d.total_cost_usd) }}
+    · {{ "%.0f"|format(d.total_latency_ms) }} ms
+  </div>
+  {% if d.action_params %}
+  <div class="text-mute fs-tiny mb2">
+    params: {{ d.action_params | tojson }}
+  </div>
+  {% endif %}
+  <div class="decision-card-trace">{{ d.reasoning_trace }}</div>
+</div>
+{% else %}
+<div class="panel">
+  <div class="text-mute fs-tiny p2">
+    No decisions match the current filter.
+    {% if not (q_miner or q_action or q_autonomy) %}
+    Agents may not have run yet — start the system to see decisions.
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof startClockTicker === 'function') startClockTicker('#ts-live');
+});
+</script>
+{% endblock %}

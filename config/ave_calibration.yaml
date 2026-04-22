@@ -1,0 +1,67 @@
+# AVE v8 calibration — configurable values for the extended formula.
+#
+#     AVE = (Q · V_net) / (T · (C_agent + P_miscal))
+#
+# Q         : 1 if emitted (action, autonomy_level) == ground_truth, else 0
+# V_net     : USD value realized by a correct decision (V_avoided − V_forgone).
+#             Per-flag override via `ground_truth.miscalibration_cost_on_error`
+#             is NOT for V_net — V_net defaults by severity; see `value_by_severity`.
+# T         : decision latency in seconds
+# C_agent   : measured inference cost in USD (from the model provider)
+# P_miscal  : miscalibration penalty in USD, classified by error kind
+#             (see `miscalibration_penalty` below)
+#
+# Aggregate form:
+#     AVE_aggregate = sum(Q_i · V_net_i) / sum(T_i · (C_agent_i + P_miscal_i) + ε)
+#
+# The calibration numbers below are operator-set defaults for the 50-miner
+# demo fleet. Production deployments should overwrite these with their own
+# $/hour downtime cost, $/kWh grid tariff, and error-class impact estimates.
+
+schema_version: 1
+
+# Value of a correct decision (V_net when Q=1), indexed by flag severity.
+# Interpretation: the money the operator keeps (or avoids losing) when the
+# Orchestra gets the call right on a flag of this severity.
+# - info: trivial — just observation correctness.
+# - warn: moderate — avoiding fleet availability loss on a real precursor.
+# - crit: high — avoiding hardware damage, downtime, or restart cycles.
+value_by_severity:
+  info: 10
+  warn: 50
+  crit: 500
+
+# P_miscal (miscalibration penalty in USD) by error kind.
+#
+# Error kind is classified by the distance between emitted and ground-truth
+# autonomy levels on the L1 < L2 < L3 < L4 ladder:
+#
+#   correct        — Q == 1 (action AND level match ground truth)
+#   action_only    — level matches but action is wrong (e.g. shutdown vs
+#                    human_review at L4, both "L4" but different operational
+#                    meaning)
+#   adjacent_under — emitted level = truth_level − 1 (e.g. alert when
+#                    throttle needed — under-intervention by one step)
+#   adjacent_over  — emitted level = truth_level + 1 (e.g. throttle when
+#                    alert sufficed — over-intervention by one step)
+#   distant_under  — emitted level ≤ truth_level − 2 (missed critical
+#                    escalation, e.g. observe when throttle/human_review
+#                    needed)
+#   distant_over   — emitted level ≥ truth_level + 2 (catastrophic
+#                    over-escalation, e.g. shutdown/human_review when
+#                    observe was correct)
+#
+# Defaults are asymmetric: under-reaction on a real signal is cheaper than
+# over-reaction only for adjacent cases (operator gets alerted either way);
+# for distant cases, under-reaction (missed failure) is more expensive.
+miscalibration_penalty:
+  correct:        0
+  action_only:    5
+  adjacent_under: 5
+  adjacent_over:  50
+  distant_under:  200
+  distant_over:   100
+
+# Epsilon guards division by zero for cost-free configurations (e.g.
+# local Ollama with C_agent=0 and no errors, hence P_miscal=0).
+epsilon: 0.001

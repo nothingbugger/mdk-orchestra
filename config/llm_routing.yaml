@@ -1,0 +1,167 @@
+# MDK Orchestra — LLM routing configuration
+#
+# Resolution precedence (highest first):
+#   1. Per-slot env override:  MDK_LLM_<SECTION>_<SLOT>_BACKEND / _MODEL
+#      e.g. MDK_LLM_SPECIALISTS_VOLTAGE_BACKEND=standard_local
+#   2. Profile override:       MDK_LLM_PROFILE=<profile_name>
+#   3. `agents` section below  (explicit per-slot default)
+#   4. `default` section       (catch-all)
+#
+# Supported backends:
+#   - anthropic        — native Anthropic API (Claude models)
+#   - standard_local   — local LLM server using industry-standard chat
+#                        completions format (Ollama, LM Studio, llama.cpp
+#                        server, vLLM, etc.). cost = 0.
+#   - standard_api     — remote API provider using the same standard
+#                        format (OpenAI, Groq, Together, OpenRouter,
+#                        DeepSeek, Mistral, Fireworks, Perplexity, etc.)
+#
+# Agent slots in use:
+#   maestro.dispatch       — first-pass synthesis
+#   maestro.escalation     — second opinion (L3/L4 path)
+#   maestro.curation       — periodic memory curation
+#   specialists.voltage
+#   specialists.hashrate
+#   specialists.environment
+#   specialists.power
+#
+# See docs/extending.md for how to add a provider not listed above.
+
+
+# ---------------------------------------------------------------------------
+# Backend blocks — shared config that any profile/slot can reference
+# ---------------------------------------------------------------------------
+
+standard_local:
+  # Default Ollama port. Override per-slot in a profile if you run the
+  # server on a different host / port (e.g. LM Studio on :1234).
+  host: "http://127.0.0.1:11434"
+  timeout_s: 120
+  tool_call_retries: 2
+
+standard_api:
+  # Defaults for the shared standard_api backend instance. Per-slot
+  # entries can override host, api_key_env, model, and pricing.
+  timeout_s: 120
+  tool_call_retries: 2
+
+
+# ---------------------------------------------------------------------------
+# Default (catch-all) — used when a slot has no explicit entry.
+# ---------------------------------------------------------------------------
+
+default:
+  backend: anthropic
+  model: claude-sonnet-4-6
+
+
+# ---------------------------------------------------------------------------
+# Explicit per-slot defaults
+# ---------------------------------------------------------------------------
+
+agents:
+  maestro:
+    dispatch:
+      backend: anthropic
+      model: claude-sonnet-4-6
+    escalation:
+      backend: anthropic
+      model: claude-opus-4-7
+    curation:
+      backend: anthropic
+      model: claude-opus-4-7
+
+  specialists:
+    voltage:
+      backend: anthropic
+      model: claude-sonnet-4-6
+    hashrate:
+      backend: anthropic
+      model: claude-sonnet-4-6
+    environment:
+      backend: anthropic
+      model: claude-haiku-4-5-20251001
+    power:
+      backend: anthropic
+      model: claude-sonnet-4-6
+
+
+# ---------------------------------------------------------------------------
+# Profiles — switch with `MDK_LLM_PROFILE=<name>` or CLI `--profile <name>`.
+# ---------------------------------------------------------------------------
+
+profiles:
+  # Default explicit profile — every slot on Anthropic. Equivalent to
+  # omitting MDK_LLM_PROFILE entirely; kept so callers can set
+  # MDK_LLM_PROFILE=full_api to opt into the explicit default.
+  full_api: {}
+
+  # Economic mix — specialists on a local LLM server (zero inference cost),
+  # Maestro stays on Anthropic for quality + prompt caching. Requires a
+  # compatible local server listening at `standard_local.host`.
+  hybrid_economic:
+    specialists.voltage:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    specialists.hashrate:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    specialists.environment:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    specialists.power:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    maestro.dispatch:
+      backend: anthropic
+      model: claude-sonnet-4-6
+    maestro.escalation:
+      backend: anthropic
+      model: claude-opus-4-7
+    maestro.curation:
+      backend: anthropic
+      model: claude-opus-4-7
+
+  # Fully local — zero API spend. Maestro on a local model is a quality
+  # experiment: escalation and curation both route to the same local
+  # server. Use for ablation / offline / privacy-first runs.
+  full_local:
+    specialists.voltage:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    specialists.hashrate:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    specialists.environment:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    specialists.power:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    maestro.dispatch:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    maestro.escalation:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+    maestro.curation:
+      backend: standard_local
+      model: "qwen2.5:7b-instruct-q4_K_M"
+
+  # Example third-party API profile — Groq for specialists, Anthropic for
+  # Maestro. Requires `GROQ_API_KEY` env var set. Commented out by default;
+  # uncomment and edit to activate. See docs/extending.md for the full list
+  # of standard_api compatible providers.
+  #
+  # groq_specialists:
+  #   specialists.voltage:
+  #     backend: standard_api
+  #     host: "https://api.groq.com/openai"
+  #     api_key_env: GROQ_API_KEY
+  #     model: "llama-3.3-70b-versatile"
+  #     price_per_m_input: 0.59
+  #     price_per_m_output: 0.79
+  #   # ... (repeat for hashrate / environment / power)
+  #   maestro.dispatch:
+  #     backend: anthropic
+  #     model: claude-sonnet-4-6

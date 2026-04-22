@@ -1,0 +1,102 @@
+{
+  "run_id": "ab_short_complete_20260422_0958_23e965fb",
+  "scenario": "ab_short_complete_20260422_0958",
+  "seed": 42,
+  "duration_min": 120,
+  "generated_at": "2026-04-22T08:10:50.996850+00:00",
+  "track_a": {
+    "flags_raised": 38,
+    "faults_injected": 13,
+    "faults_caught": 13,
+    "catch_rate": 1.0,
+    "total_actions": 28,
+    "action_counts": {
+      "observe": 13,
+      "throttle": 5,
+      "alert_operator": 9,
+      "human_review": 1
+    },
+    "false_positives": 0,
+    "false_positive_rate": 0.0,
+    "total_cost_usd": 3.312757,
+    "median_latency_s": 159.03,
+    "reasoning_snapshots": [
+      {
+        "miner_id": "m001",
+        "action": "observe",
+        "confidence": 0.88,
+        "consulted_agents": [
+          "voltage_agent"
+        ],
+        "reasoning_trace": "m001 hashrate_degradation warn/0.74. Hashrate agent: noise conf=0.88 \u2014 30-min trajectory stationary at ~105.35 TH/s (+1.3% above nameplate), \u03c3=0.38 TH/s, flat thermals (73.7\u201375.2\u00b0C), HSI 96\u2013100, zero thermal throttle events. XGBoost fired on 1-min window variance (hr_std_1m=0.26, power_std_1m=13.8) that doesn't persist at 30-min resolution \u2014 textbook short-window false positive matching curated pattern xgboost_hashrate_fp_unanimous_noise. Miner is healthy. No fallback consultation warranted; pri",
+        "cost_usd": 0.055953,
+        "latency_ms": 15387.752457987517
+      },
+      {
+        "miner_id": "m002",
+        "action": "observe",
+        "confidence": 0.89,
+        "consulted_agents": [
+          "voltage_agent"
+        ],
+        "reasoning_trace": "m002 hashrate_degradation crit/0.977. XGBoost fired on 1-min feature window (hr_mean_1m=87.59, hr_std_1m=0.37) with raw_score=0.988, predicting >20% drop within 30min. Hashrate agent: noise conf=0.89 \u2014 trajectory is stationary, hashrate flat at ~87.66 TH/s (~\u22120.38% vs nameplate 88.0, well inside \u00b12% eco-mode band), no step/ramp/sawtooth, temp stable 64\u201367\u00b0C, power steady ~2695W, HSI 93\u2013100. Agent explicitly matches short_window_variance_false_positive and eco_mode_subnominal_offset_fp memory pat",
+        "cost_usd": 0.09594,
+        "latency_ms": 18415.63554201275
+      },
+      {
+        "miner_id": "m014",
+        "action": "observe",
+        "confidence": 0.91,
+        "consulted_agents": [
+          "voltage_agent"
+        ],
+        "reasoning_trace": "m014 hashrate_degradation crit/0.97. Hashrate agent (primary): noise 0.91 \u2014 30-min trajectory stationary at ~105.7 TH/s (+1.6% above nominal), \u03c3\u22480.44 TH/s (~0.4%), chip temps flat 74\u201376\u00b0C, hot_time_frac=0.0, HSI 94\u2013100 with one transient dip. XGBoost tripped on hr_std_1m=0.44 in a 1-min window while the sustained 30-min curve shows nothing. Textbook short-window variance false positive \u2014 matches curated pattern xgboost_hashrate_fp_unanimous_noise. No fallback agent warranted; primary verdict is ",
+        "cost_usd": 0.103905,
+        "latency_ms": 21462.27670798544
+      },
+      {
+        "miner_id": "m016",
+        "action": "observe",
+        "confidence": 0.88,
+        "consulted_agents": [
+          "voltage_agent"
+        ],
+        "reasoning_trace": "m016 hashrate_degradation crit/0.9783 (xgboost, p_drop_20pct_30min=0.9941). Hashrate agent: noise 0.88 \u2014 30-min window is stationary at 86.75 TH/s \u00b10.43, no step/ramp/sawtooth; sub-nominal offset (-1.4%) consistent with known eco-mode de-rating. HSI 99.84, temps flat 65\u201367\u00b0C, ambient 22\u00b0C \u2014 no thermal co-oscillation. Model fired on hr_std_1m=0.43 and persistent eco-mode offset, classic short-window FP per documented patterns. Voltage fallback not warranted \u2014 primary returned decisive noise above",
+        "cost_usd": 0.10359,
+        "latency_ms": 19508.358500082977
+      },
+      {
+        "miner_id": "m045",
+        "action": "observe",
+        "confidence": 0.91,
+        "consulted_agents": [
+          "voltage_agent"
+        ],
+        "reasoning_trace": "m045 hashrate_degradation crit/0.9793 (xgboost, p_drop=0.9976). Hashrate agent: noise conf=0.91 \u2014 30-min realized trajectory is stationary at 104.82\u2013106.18 TH/s (+1.4% above nominal), \u03c3\u22480.4 TH/s, HSI stable 92\u201399.87, chip temp steady 69.8\u201372.0\u00b0C, hot_time_frac=0.0. No step, ramp, or sawtooth. Matches `short_window_variance_false_positive` pattern: XGBoost fired on 1-min feature window variance that doesn't persist at 30-min scale. Voltage agent not dispatched \u2014 primary returned definitive noise ",
+        "cost_usd": 0.103302,
+        "latency_ms": 16949.1333339829
+      }
+    ]
+  },
+  "track_b": {
+    "flags_raised": 38,
+    "faults_injected": 13,
+    "faults_caught": 13,
+    "catch_rate": 1.0,
+    "total_actions": 38,
+    "action_counts": {
+      "alert_operator": 21,
+      "throttle": 17
+    },
+    "false_positives": 12,
+    "false_positive_rate": 0.3158,
+    "total_cost_usd": 0.0,
+    "median_latency_s": 0.054
+  },
+  "comparison": {
+    "catch_rate_delta": 0.0,
+    "false_positive_delta": -0.3158,
+    "cost_per_extra_catch_usd": "N/A (no extra catches)",
+    "latency_ratio_a_vs_b": 2971.194
+  }
+}

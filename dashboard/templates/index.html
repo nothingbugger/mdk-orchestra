@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Fleet Dashboard{% endblock %}
+
+{% block content %}
+{# ── Hero KPIs ─────────────────────────────────────────────────────── #}
+<div class="fleet-kpi-row mb3">
+  <div class="fleet-kpi-block">
+    <div class="fleet-kpi-label">Fleet TE</div>
+    <div class="fleet-kpi-value" id="hero-fleet-te">
+      {{ "%.1f"|format(fleet.fleet_te) }}
+    </div>
+  </div>
+  <div class="fleet-kpi-block">
+    <div class="fleet-kpi-label">Fleet HSI</div>
+    <div class="fleet-kpi-value dim" id="hero-fleet-hsi">
+      {{ "%.1f"|format(fleet.fleet_hsi) }}
+    </div>
+  </div>
+  <div class="fleet-kpi-block">
+    <div class="fleet-kpi-label">Miners</div>
+    <div class="fleet-kpi-value">{{ miner_cells|length }}</div>
+  </div>
+  <div class="fleet-kpi-block">
+    <div class="fleet-kpi-label">Active Flags</div>
+    <div class="fleet-kpi-value" id="hero-flag-count">{{ recent_flags|length }}</div>
+  </div>
+</div>
+
+<div class="dash-grid">
+
+  {# ── Left column ─────────────────────────────────────────────────── #}
+  <div class="col-left">
+
+    {# Fleet map #}
+    <div class="panel">
+      <div class="panel-title">Miners Map — 50 Miners</div>
+
+      {# Miner cells default to status-ok on first paint. Color changes
+         ONLY when a flag is raised for that miner (handled by JS via
+         .flag-active-{warn,crit} classes, removed when the matching
+         decision lands). HSI/TE values still surface in the tooltip
+         and the KPI bars, but they don't drive cell color — avoids the
+         "sea of yellow miners" effect on an otherwise healthy fleet. #}
+      <div class="fleet-grid" id="fleet-grid">
+        {% for m in miner_cells %}
+        <div
+          class="miner-cell status-ok"
+          data-miner-id="{{ m.id }}"
+          title="{{ m.id }}"
+        >{{ m.id[1:] }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="legend-row mt3">
+        <div class="legend-item"><div class="legend-dot ok"></div> full operative</div>
+        <div class="legend-item"><div class="legend-dot warn"></div> warn flag</div>
+        <div class="legend-item"><div class="legend-dot imm"></div> critical flag</div>
+        <div class="legend-item"><div class="legend-dot throttled"></div> throttling</div>
+        <div class="legend-item"><div class="legend-dot shut"></div> shutdown</div>
+      </div>
+    </div>
+
+    {# Fleet TE/HSI bars #}
+    <div class="panel">
+      <div class="panel-title">Fleet KPIs</div>
+
+      <div class="kpi-bar-row">
+        <div class="kpi-bar-label text-dim">TE</div>
+        <div class="kpi-bar-track">
+          <div class="kpi-bar-fill te" id="fleet-te-bar"
+               style="width: {{ [fleet.fleet_te, 100]|min|int }}%"></div>
+        </div>
+        <div class="kpi-bar-value" id="fleet-te-val">{{ "%.1f"|format(fleet.fleet_te) }}</div>
+      </div>
+
+      <div class="kpi-bar-row">
+        <div class="kpi-bar-label text-dim">HSI</div>
+        <div class="kpi-bar-track">
+          <div class="kpi-bar-fill hsi" id="fleet-hsi-bar"
+               style="width: {{ [fleet.fleet_hsi, 100]|min|int }}%"></div>
+        </div>
+        <div class="kpi-bar-value" id="fleet-hsi-val">{{ "%.1f"|format(fleet.fleet_hsi) }}</div>
+      </div>
+
+    </div>
+
+    {# Environmental strip #}
+    <div class="panel">
+      <div class="panel-title">Environment</div>
+      <div class="env-strip">
+        <div class="env-item">Temp <strong id="env-temp">{{ "%.1f"|format(fleet.env.get('site_temp_c', 0)) }}°C</strong></div>
+        <div class="env-item">Humidity <strong id="env-humidity">{{ "%.0f"|format(fleet.env.get('site_humidity_pct', 0)) }}%</strong></div>
+        <div class="env-item">Electricity <strong id="env-elec">${{ "%.4f"|format(fleet.env.get('elec_price_usd_kwh', 0)) }}/kWh</strong></div>
+        <div class="env-item">Hashprice <strong id="env-hashprice">${{ "%.4f"|format(fleet.env.get('hashprice_usd_per_th_day', 0)) }}/TH·d</strong></div>
+      </div>
+    </div>
+
+  </div>{# end col-left #}
+
+  {# ── Right column ────────────────────────────────────────────────── #}
+  <div class="col-right">
+
+    {# Live flags feed #}
+    <div class="panel">
+      <div class="panel-title">Live Flags Feed</div>
+      <div class="flags-feed" id="flags-feed">
+        {% for ev in recent_flags %}
+        {% set d = ev.data %}
+        <div class="flag-row" data-flag-id="{{ d.flag_id }}" data-flag-type="{{ d.flag_type }}">
+          <span class="flag-type-chip flag-type-chip--{{ d.severity }}" title="severity: {{ d.severity }}">{{ d.flag_type }}</span>
+          <span class="flag-miner-id">{{ d.miner_id }}</span>
+          <span class="flag-source text-mute fs-tiny">{{ d.source_tool }}</span>
+          <span class="flag-working"></span>
+          <span class="flag-resolution text-mute fs-tiny"></span>
+          <span class="flag-ts">{{ ev.ts[:19] }}</span>
+        </div>
+        {% else %}
+        <div class="text-mute fs-tiny p2">No flags yet — streams may not be running.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Maestro reasoning trace log #}
+    <div class="panel">
+      <div class="panel-title">Maestro Reasoning Trace</div>
+      <div class="trace-feed" id="trace-feed">
+        {% for ev in recent_decisions %}
+        {% set d = ev.data %}
+        <div class="trace-row">
+          <div class="trace-header">
+            <span class="trace-miner">{{ d.miner_id }}</span>
+            <span class="trace-action">{{ d.action }}</span>
+            <span class="trace-autonomy trace-autonomy--{{ d.autonomy_level[:2] | lower }}">[{{ d.autonomy_level }}]</span>
+            <span class="trace-ts">{{ ev.ts[:19] }}</span>
+          </div>
+          <div class="trace-agents text-mute fs-tiny mb1">
+            agents: {{ d.consulted_agents|join(', ') }}
+          </div>
+          <div class="trace-reasoning">{{ d.reasoning_trace }}</div>
+        </div>
+        {% else %}
+        <div class="text-mute fs-tiny p2">No decisions yet — agents may not be running.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>{# end col-right #}
+
+</div>{# end dash-grid #}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

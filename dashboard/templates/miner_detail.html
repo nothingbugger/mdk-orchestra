@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}{{ miner_id }}{% endblock %}
+
+{% block content %}
+{% set lt = miner.latest_telemetry %}
+{% set lk = miner.latest_kpi %}
+{% set status = lk.get('status', lt.get('status', 'shut')) if lk else 'shut' %}
+
+{# ── Miner header ──────────────────────────────────────────────────── #}
+<div class="miner-detail-header">
+  <span class="miner-detail-id">{{ miner_id }}</span>
+  <span class="miner-detail-status {{ status }}">{{ status|upper }}</span>
+  <span class="text-mute fs-tiny">{{ lt.get('miner_model', '') }}</span>
+  <a href="/" class="text-dim fs-tiny ml-auto" style="margin-left: auto">← fleet</a>
+</div>
+
+{# ── KPI cards ─────────────────────────────────────────────────────── #}
+<div class="miner-kpi-grid mb4">
+
+  <div class="miner-kpi-card">
+    <div class="miner-kpi-card-label">True Efficiency</div>
+    <div class="miner-kpi-card-value text-ok">
+      {{ "%.1f"|format(lk.get('te', 0)) if lk else '—' }}
+    </div>
+  </div>
+
+  <div class="miner-kpi-card">
+    <div class="miner-kpi-card-label">Health State Index</div>
+    <div class="miner-kpi-card-value text-warn">
+      {{ "%.1f"|format(lk.get('hsi', 0)) if lk else '—' }}
+    </div>
+  </div>
+
+  <div class="miner-kpi-card">
+    <div class="miner-kpi-card-label">Hashrate</div>
+    <div class="miner-kpi-card-value">
+      {{ "%.1f"|format(lt.get('hashrate_th', 0)) if lt else '—' }} TH/s
+    </div>
+  </div>
+
+  <div class="miner-kpi-card">
+    <div class="miner-kpi-card-label">Chip Temp</div>
+    <div class="miner-kpi-card-value">
+      {{ "%.1f"|format(lt.get('temp_chip_c', 0)) if lt else '—' }}°C
+    </div>
+  </div>
+
+  <div class="miner-kpi-card">
+    <div class="miner-kpi-card-label">Power</div>
+    <div class="miner-kpi-card-value">
+      {{ "%.0f"|format(lt.get('power_w', 0)) if lt else '—' }} W
+    </div>
+  </div>
+
+  <div class="miner-kpi-card">
+    <div class="miner-kpi-card-label">Voltage</div>
+    <div class="miner-kpi-card-value">
+      {{ "%.3f"|format(lt.get('voltage_v', 0)) if lt else '—' }} V
+    </div>
+  </div>
+
+</div>
+
+<div class="dash-grid">
+
+  {# ── Left: recent telemetry ──────────────────────────────────────── #}
+  <div class="col-left">
+
+    <div class="panel">
+      <div class="panel-title">Recent Telemetry (last {{ miner.tel_series|length }} ticks)</div>
+      {% if miner.tel_series %}
+      <table class="telemetry-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Hash TH/s</th>
+            <th>Temp °C</th>
+            <th>Power W</th>
+            <th>Voltage V</th>
+            <th>Mode</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tick in miner.tel_series[-20:]|reverse %}
+          <tr>
+            <td class="text-mute">{{ tick.get('ts', '')[:19] }}</td>
+            <td>{{ "%.1f"|format(tick.get('hashrate_th', 0)) }}</td>
+            <td>{{ "%.1f"|format(tick.get('temp_chip_c', 0)) }}</td>
+            <td>{{ "%.0f"|format(tick.get('power_w', 0)) }}</td>
+            <td>{{ "%.3f"|format(tick.get('voltage_v', 0)) }}</td>
+            <td class="text-dim">{{ tick.get('operating_mode', '') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-mute fs-tiny p2">No telemetry data available for {{ miner_id }}.</div>
+      {% endif %}
+    </div>
+
+    {# Sparkline hint (static SVG placeholder; JS fills if data available) #}
+    <div class="panel">
+      <div class="panel-title">TE / HSI History</div>
+      <div id="sparkline-te" style="width:100%;height:48px;"></div>
+      <div class="text-mute fs-tiny mt1">TE (green)  ·  HSI (yellow)</div>
+      <div id="sparkline-hsi" style="width:100%;height:48px;margin-top: var(--spacing-2);"></div>
+    </div>
+
+  </div>{# end col-left #}
+
+  {# ── Right: flags + decisions ──────────────────────────────────────#}
+  <div class="col-right">
+
+    <div class="panel">
+      <div class="panel-title">Flags ({{ miner_flags|length }})</div>
+      <div class="flags-feed">
+        {% for ev in miner_flags %}
+        {% set d = ev.data %}
+        <div class="flag-row">
+          <span class="flag-type-chip flag-type-chip--{{ d.severity }}" title="severity: {{ d.severity }}">{{ d.flag_type }}</span>
+          <span class="text-mute fs-tiny">{{ d.source_tool }} · conf={{ "%.2f"|format(d.confidence) }}</span>
+          <span class="flag-ts">{{ ev.ts[:19] }}</span>
+        </div>
+        {% else %}
+        <div class="text-mute fs-tiny p2">No flags for {{ miner_id }}.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Decisions ({{ miner_decisions|length }})</div>
+      <div class="trace-feed">
+        {% for ev in miner_decisions %}
+        {% set d = ev.data %}
+        <div class="trace-row">
+          <div class="trace-header">
+            <span class="trace-action">{{ d.action }}</span>
+            <span class="trace-autonomy trace-autonomy--{{ d.autonomy_level[:2] | lower }}">[{{ d.autonomy_level }}]</span>
+            <span class="trace-ts">{{ ev.ts[:19] }}</span>
+          </div>
+          <div class="trace-agents text-mute fs-tiny mb1">
+            agents: {{ d.consulted_agents|join(', ') }}
+            · conf={{ "%.2f"|format(d.confidence) }}
+          </div>
+          <div class="trace-reasoning">{{ d.reasoning_trace }}</div>
+        </div>
+        {% else %}
+        <div class="text-mute fs-tiny p2">No decisions for {{ miner_id }}.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>{# end col-right #}
+
+</div>{# end dash-grid #}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/event_stream.js') }}"></script>
+<script>
+// Inline sparkline render from server-side data
+const teData = {{ miner.kpi_series | map(attribute='te') | list | tojson }};
+const hsiData = {{ miner.kpi_series | map(attribute='hsi') | list | tojson }};
+
+document.addEventListener('DOMContentLoaded', () => {
+  startClockTicker('#ts-live');
+
+  if (typeof Sparkline !== 'undefined') {
+    Sparkline.draw(document.getElementById('sparkline-te'), teData,
+      { color: 'var(--color-status-ok)', h: 48 });
+    Sparkline.draw(document.getElementById('sparkline-hsi'), hsiData,
+      { color: 'var(--color-status-warn)', h: 48 });
+  }
+});
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,238 @@
+{
+  "batch_id": "ave_comparison_v1",
+  "created_at": "2026-04-22T08:18:00Z",
+  "description": "10 flags with physically-motivated ground truth for 5-config AVE comparison. Flags 1-7 are real instances pulled from ab_longrun_20260422_0017 (track_a). Flags 8-10 are synthetic: fan_anomaly crit (2 failed fans, one at stall), thermal plateau (fault completed, temp stable-high), and voltage_drift warn (rail below nominal). Miner IDs on real flags keep the longrun ID; synthetic flags use m901-m903 (MinerId pattern-compliant).",
+  "ground_truth_legend": {
+    "action_vocab": "observe | alert_operator | throttle | migrate_workload | schedule_maintenance | human_review | shutdown",
+    "autonomy_ladder": "L1_observe (log) | L2_suggest (alert, operator approves) | L3_bounded_auto (execute reversible) | L4_human_only (queue for approval)"
+  },
+  "scoring_note": "Q=1 when emitted (action, autonomy_level) matches ground_truth exactly. Partial credit not awarded — the autonomy ladder is the operational decision the operator acts on, so matching matters.",
+  "v8_fields": "Optional per-flag overrides consumed by report/compute_ave.py under the pitch-v8 formula AVE = (Q·V_net)/(T·(C_agent+P_miscal)). `value_if_correct` overrides the severity-default V_net (USD realized on a correct call). `miscalibration_cost_on_error` overrides the error-class-default P_miscal (USD penalty on any wrong call). Flags without these fields fall back to config/ave_calibration.yaml defaults. Only flags with physics-specific error cost (e.g. thermal runaway with hardware damage risk) need explicit overrides.",
+  "flags": [
+    {
+      "flag_id": "ave_flg_01",
+      "origin_flag_id": "flg_00001",
+      "miner_id": "m001",
+      "flag_type": "hashrate_degradation",
+      "severity": "warn",
+      "confidence": 0.7519,
+      "source_tool": "xgboost_predictor",
+      "evidence": {
+        "metric": "hashrate_th",
+        "window_min": 1.0,
+        "predicted_prob_drop_20pct_30min": 0.6297,
+        "features": ["hr_mean_1m","hr_std_1m","hr_mean_6m","hr_std_6m","v_mean_1m","v_std_1m","temp_mean_1m","temp_std_1m","power_mean_1m","power_std_1m","hsi","te","fan_mean"],
+        "feature_values": [105.3258,0.2313,105.3258,0.2313,12.0657,0.0177,72.3592,0.1805,3247.7917,14.1449,98.81,100.0,5889.5],
+        "prob_warn_threshold": 0.5,
+        "prob_crit_threshold": 0.75
+      },
+      "raw_score": 0.6297,
+      "ground_truth_action": "observe",
+      "ground_truth_autonomy": "L1_observe",
+      "ground_truth_reasoning": "XGBoost predictor returns warn (0.63) on a miner whose rolling features are healthy: HR mean 105.3 TH with std 0.23 (<0.3% of mean), chip temp 72°C (well below 82°C alarm), voltage 12.07V (nominal), HSI 98.8. No corroborating evidence for an imminent drop. Curated pattern 'xgboost_hashrate_fp_unanimous_noise' applies: XGBoost hashrate warns in absence of telemetry-level anomaly are predominantly noise. Correct call: log and move on."
+    },
+    {
+      "flag_id": "ave_flg_02",
+      "origin_flag_id": "flg_00003",
+      "miner_id": "m008",
+      "flag_type": "hashrate_degradation",
+      "severity": "warn",
+      "confidence": 0.7554,
+      "source_tool": "xgboost_predictor",
+      "evidence": {
+        "metric": "hashrate_th",
+        "window_min": 1.0,
+        "predicted_prob_drop_20pct_30min": 0.6385,
+        "features": ["hr_mean_1m","hr_std_1m","hr_mean_6m","hr_std_6m","v_mean_1m","v_std_1m","temp_mean_1m","temp_std_1m","power_mean_1m","power_std_1m","hsi","te","fan_mean"],
+        "feature_values": [89.17,0.5606,89.17,0.5606,11.9998,0.0375,63.685,0.609,2702.725,22.0156,96.4,88.09,5768.25],
+        "prob_warn_threshold": 0.5,
+        "prob_crit_threshold": 0.75
+      },
+      "raw_score": 0.6385,
+      "ground_truth_action": "observe",
+      "ground_truth_autonomy": "L1_observe",
+      "ground_truth_reasoning": "Second XGBoost warn on a different miner. HR 89.2 TH (lower-spec unit), std 0.56 (~0.6% of mean, still well within baseline variance). Voltage 12.0V solid, chip 63.7°C cool, HSI 96.4. TE 88 slightly below fleet median but not anomalous for this miner's profile. Same pattern as flag 01 — XGBoost alone without supporting telemetry evidence is noise. L1 observe."
+    },
+    {
+      "flag_id": "ave_flg_03",
+      "origin_flag_id": "flg_00002",
+      "miner_id": "m002",
+      "flag_type": "hashrate_degradation",
+      "severity": "crit",
+      "confidence": 0.9697,
+      "source_tool": "xgboost_predictor",
+      "evidence": {
+        "metric": "hashrate_th",
+        "window_min": 1.0,
+        "predicted_prob_drop_20pct_30min": 0.9631,
+        "features": ["hr_mean_1m","hr_std_1m","hr_mean_6m","hr_std_6m","v_mean_1m","v_std_1m","temp_mean_1m","temp_std_1m","power_mean_1m","power_std_1m","hsi","te","fan_mean"],
+        "feature_values": [87.6992,0.3277,87.6992,0.3277,12.0793,0.0232,63.7517,0.5199,2693.4583,14.901,99.86,91.87,5790.75],
+        "prob_warn_threshold": 0.5,
+        "prob_crit_threshold": 0.75
+      },
+      "raw_score": 0.9631,
+      "ground_truth_action": "alert_operator",
+      "ground_truth_autonomy": "L2_suggest",
+      "ground_truth_reasoning": "XGBoost crit (prob 0.96) is a strong signal in isolation, BUT rolling telemetry is healthy: voltage 12.08V rock-solid, chip temp 63.75°C cool, fan mean 5790 rpm nominal, HSI 99.86, TE 91.87. The predictor is inferring a pre-failure from features that don't yet show hardware distress. Correct action is L2_alert — flag for operator verification before any autonomous intervention. Throttling or migrating on predictor-only evidence is premature; alerting respects reversibility while ensuring operator awareness."
+    },
+    {
+      "flag_id": "ave_flg_04",
+      "origin_flag_id": "flg_00022",
+      "miner_id": "m038",
+      "flag_type": "chip_instability_precursor",
+      "severity": "warn",
+      "confidence": 0.727,
+      "source_tool": "xgboost_rolling_variance",
+      "evidence": {
+        "metric": "hashrate_th_30m_std",
+        "window_min": 30.0,
+        "predicted_prob": 0.727,
+        "top_feature_name": "hashrate_th_30m_std",
+        "top_feature_value": 2.9367,
+        "features": ["hashrate_th_30m_std","power_w_30m_std","hashrate_th_5m_std","temp_chip_c_30m_std","power_w_5m_std","hashrate_th_1m_std","power_w_1m_std","temp_chip_c_5m_std","fan_rpm_mean_30m_std","hashrate_th_1m_mean","hashrate_th_30m_mean","temp_chip_c_1m_mean","power_w_1m_mean","fan_rpm_mean_1m_std"],
+        "feature_values": [2.9367,92.8027,2.8622,1.4123,91.8442,2.8177,90.6468,1.3827,48.2712,105.5025,104.245,72.1508,3306.0917,55.7242]
+      },
+      "raw_score": 0.727,
+      "ground_truth_action": "observe",
+      "ground_truth_autonomy": "L1_observe",
+      "ground_truth_reasoning": "Chip instability precursor at warn severity. 30-min HR std of 2.94 TH is elevated vs baseline but within the hysteresis band for a warn-level flag. 1m mean HR 105.5 and 30m mean 104.2 TH show no trend (delta < 1%). Temp 72°C cool, power 3306W nominal. The rolling-variance signal is weak on its own — at this severity the correct action is to continue monitoring. L1_observe with implicit watchlist."
+    },
+    {
+      "flag_id": "ave_flg_05",
+      "origin_flag_id": "flg_00014",
+      "miner_id": "m012",
+      "flag_type": "chip_instability_precursor",
+      "severity": "crit",
+      "confidence": 0.9997,
+      "source_tool": "xgboost_rolling_variance",
+      "evidence": {
+        "metric": "hashrate_th_30m_std",
+        "window_min": 30.0,
+        "predicted_prob": 0.9997,
+        "top_feature_name": "hashrate_th_30m_std",
+        "top_feature_value": 3.0299,
+        "features": ["hashrate_th_30m_std","power_w_30m_std","hashrate_th_5m_std","temp_chip_c_30m_std","power_w_5m_std","hashrate_th_1m_std","power_w_1m_std","temp_chip_c_5m_std","fan_rpm_mean_30m_std","hashrate_th_1m_mean","hashrate_th_30m_mean","temp_chip_c_1m_mean","power_w_1m_mean","fan_rpm_mean_1m_std"],
+        "feature_values": [3.0299,95.9194,2.6963,1.4391,86.558,2.6999,80.1357,1.2893,54.1502,114.2142,114.8354,74.5875,3570.2917,38.7455]
+      },
+      "raw_score": 0.9997,
+      "ground_truth_action": "throttle",
+      "ground_truth_autonomy": "L3_bounded_auto",
+      "ground_truth_reasoning": "Chip instability precursor at crit severity, prob 0.9997. 30m HR std 3.03 TH AND 5m HR std 2.70 TH — sustained variance across scales indicates real chip-level instability, not measurement jitter. Power std also elevated (95.9W over 30m). Chip 74°C still ok but trending up. This is the textbook case for preventive L3 throttle (reversible, bounded, rate-limited): back off to 70-80% hashrate, schedule rollback in 2-4h, avoid thermal progression while operator investigates. Shutdown at L4 would be over-reaction on a warning-band chip temp.",
+      "miscalibration_cost_on_error": 150
+    },
+    {
+      "flag_id": "ave_flg_06",
+      "origin_flag_id": "flg_00018",
+      "miner_id": "m009",
+      "flag_type": "fan_anomaly",
+      "severity": "warn",
+      "confidence": 0.88,
+      "source_tool": "rule_engine",
+      "evidence": {
+        "metric": "fan_rpm",
+        "window_min": 2.0,
+        "failed_fans": [{"fan_idx": 2, "rpm": 484}],
+        "threshold_rpm": 3000
+      },
+      "raw_score": 1.0,
+      "ground_truth_action": "throttle",
+      "ground_truth_autonomy": "L3_bounded_auto",
+      "ground_truth_reasoning": "One fan at 484 rpm against a 3000 rpm threshold — fan 2 has effectively stalled. 4-fan cooling topology with one dead fan means 75% of cooling capacity remains; sustained full-load operation will drive chip temperature up within minutes. L3 throttle (reduce to 70% hashrate, 4h rollback) is the reversible preventive action: cuts thermal load, buys operator time, can be undone. Migrate workload is an alternative but the miner is capable of reduced operation so throttle is lower-churn."
+    },
+    {
+      "flag_id": "ave_flg_07",
+      "origin_flag_id": "synthetic_fan_crit_01",
+      "miner_id": "m901",
+      "flag_type": "fan_anomaly",
+      "severity": "crit",
+      "confidence": 0.94,
+      "source_tool": "rule_engine",
+      "evidence": {
+        "metric": "fan_rpm",
+        "window_min": 2.0,
+        "failed_fans": [
+          {"fan_idx": 1, "rpm": 0},
+          {"fan_idx": 3, "rpm": 612}
+        ],
+        "threshold_rpm": 3000,
+        "chip_temp_c": 79.2,
+        "chip_temp_trend_c_per_min": 1.1
+      },
+      "raw_score": 1.5,
+      "ground_truth_action": "throttle",
+      "ground_truth_autonomy": "L3_bounded_auto",
+      "ground_truth_reasoning": "2 of 4 fans failed: fan 1 at 0 rpm (stall), fan 3 at 612 rpm (dying). 50% cooling capacity lost. Chip 79.2°C with a +1.1°C/min trend — 6 minutes to the 85°C alarm threshold. L3 throttle to 60-70% is the correct reversible action: drops thermal load, buys operator 15-20 minutes, rolls back automatically if temps normalize. Shutdown (L4) would be over-reaction while throttle can still save the workload. Crit severity + thermal trend + redundancy loss justifies bounded-auto authority, not wait-for-operator.",
+      "miscalibration_cost_on_error": 300
+    },
+    {
+      "flag_id": "ave_flg_08",
+      "origin_flag_id": "flg_00188",
+      "miner_id": "m031",
+      "flag_type": "thermal_runaway",
+      "severity": "crit",
+      "confidence": 0.95,
+      "source_tool": "rule_engine",
+      "evidence": {
+        "metric": "temp_chip_c",
+        "window_min": 10.0,
+        "current_value": 87.97,
+        "threshold_c": 85.0,
+        "temp_trend_c_per_min": 0.8
+      },
+      "raw_score": 2.97,
+      "ground_truth_action": "throttle",
+      "ground_truth_autonomy": "L3_bounded_auto",
+      "ground_truth_reasoning": "Chip 87.97°C, 3°C over the 85°C threshold, +0.8°C/min trend — actively escalating thermal runaway. L3 throttle (drop to 60% hashrate with 30-min rollback window) is the correct bounded-auto intervention: it's reversible, rate-limited, and directly addresses the root driver (compute load generating heat). Shutdown (L4) is reserved for passed-threshold non-recoverable states; while 88°C is serious, throttle can still normalize it without losing the miner from the fleet.",
+      "value_if_correct": 800,
+      "miscalibration_cost_on_error": 400
+    },
+    {
+      "flag_id": "ave_flg_09",
+      "origin_flag_id": "synthetic_thermal_plateau_01",
+      "miner_id": "m902",
+      "flag_type": "thermal_runaway",
+      "severity": "crit",
+      "confidence": 0.97,
+      "source_tool": "rule_engine",
+      "evidence": {
+        "metric": "temp_chip_c",
+        "window_min": 15.0,
+        "current_value": 91.4,
+        "threshold_c": 85.0,
+        "temp_trend_c_per_min": 0.0,
+        "temp_stable_minutes": 12,
+        "hashrate_drop_pct": 18.0,
+        "note": "Temp plateaued at 91.4C for 12 minutes — fault has completed its escalation phase; no autonomous throttle will recover without physical intervention"
+      },
+      "raw_score": 3.2,
+      "ground_truth_action": "human_review",
+      "ground_truth_autonomy": "L4_human_only",
+      "ground_truth_reasoning": "Chip at 91.4°C plateau for 12 minutes with zero trend — the thermal fault has completed its escalation and stabilized at a damaging steady state. 18% hashrate already lost. This is NOT an actively-escalating runaway that throttling can reverse; this is a completed fault with likely physical cause (heatsink issue, paste degradation, blocked airflow) that requires physical intervention. L4 human_review routes it to maintenance dispatch — an engineer must inspect, not an algorithm throttle. Scheduling maintenance is the sub-action; the autonomy level is the load-bearing call.",
+      "miscalibration_cost_on_error": 250
+    },
+    {
+      "flag_id": "ave_flg_10",
+      "origin_flag_id": "synthetic_voltage_drift_01",
+      "miner_id": "m903",
+      "flag_type": "voltage_drift",
+      "severity": "warn",
+      "confidence": 0.76,
+      "source_tool": "rule_engine",
+      "evidence": {
+        "metric": "voltage_v",
+        "window_min": 5.0,
+        "current_value": 11.63,
+        "nominal_v": 12.0,
+        "threshold_low_v": 11.7,
+        "drift_pct": -3.08,
+        "hashrate_th": 101.2,
+        "hashrate_expected_th": 104.0,
+        "note": "Rail 3.08% below nominal, below the 11.7V warn threshold. Hashrate slightly degraded but not collapsed."
+      },
+      "raw_score": 0.8,
+      "ground_truth_action": "alert_operator",
+      "ground_truth_autonomy": "L2_suggest",
+      "ground_truth_reasoning": "Voltage rail at 11.63V, 3.1% below nominal 12.0V and under the 11.7V warn threshold. HR 101.2 vs 104 expected = ~2.7% degradation, consistent with the voltage deficit. The drift is mild and could reflect PSU aging, upstream sag, or rack-level load. NOT critical yet — no thermal indication, no hashrate collapse. L2_suggest (alert operator) is correct: the remediation is physical (PSU diagnostic, rack inspection) which an autonomous agent cannot perform. Raising to L3 throttle is inappropriate — the issue is supply-side, not compute-side. Observe alone (L1) would under-react to a real supply anomaly."
+    }
+  ]
+}

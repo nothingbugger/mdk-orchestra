@@ -1,0 +1,37 @@
+Build ID: ab_short_complete_20260422_0958
+Run dir: /tmp/mdk_pitch_run/ab_short_complete_20260422_0958_23e965fb/
+
+Flags: 38
+  By source:
+     27  xgboost_predictor
+      7  xgboost_rolling_variance
+      4  rule_engine
+  By type:
+     28  hashrate_degradation
+      7  chip_instability_precursor
+      3  fan_anomaly
+  By severity:
+     21  warn
+     17  crit
+
+Decisions: 28
+  Actions:
+     13  observe
+      9  alert_operator
+      5  throttle
+      1  human_review
+  Autonomy:
+     13  L1_observe
+      6  L2_suggest
+      5  L3_bounded_auto
+      4  L4_human_only
+
+Cost total API: $3.3128
+Cost mean per decision: $0.1183
+Latency mean: 24.7s
+
+Action distribution by autonomy:
+  L1_observe: {'observe': 13}
+  L2_suggest: {'alert_operator': 6}
+  L3_bounded_auto: {'throttle': 5}
+  L4_human_only: {'alert_operator': 3, 'human_review': 1}

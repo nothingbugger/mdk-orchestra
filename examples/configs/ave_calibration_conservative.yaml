@@ -1,0 +1,25 @@
+# Conservative AVE calibration — heavier penalties on errors.
+#
+# Use this if you want the AVE metric to punish over-escalation and
+# under-escalation more strongly. Suitable for operators who consider
+# false-positive throttles (over_react) or missed critical failures
+# (distant_under) as severe operational failures.
+#
+# Copy to config/ave_calibration.yaml to activate.
+
+schema_version: 1
+
+value_by_severity:
+  info: 10
+  warn: 50
+  crit: 500
+
+miscalibration_penalty:
+  correct:         0
+  action_only:    20     # same-level wrong action
+  adjacent_under: 50     # one step under-escalated (was 5)
+  adjacent_over:  150    # one step over-escalated (was 50)
+  distant_under:  500    # two+ steps under-escalated (was 200)
+  distant_over:   300    # two+ steps over-escalated (was 100)
+
+epsilon: 0.001
